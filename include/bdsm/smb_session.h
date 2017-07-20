@@ -145,5 +145,13 @@ int             smb_session_supports(smb_session *s, int what);
  */
 uint32_t        smb_session_get_nt_status(smb_session *s);
 
+/**
+
+ * @brief Get the max size of a raw buffer
+ * @details This is the limit of buffer size of some operation (e.g. smb_fread, smb_fwrite)
+ *
+ * @param s The session object
+ */
+uint32_t smb_session_max_raw_buffer_size(smb_session *s);
 
 #endif

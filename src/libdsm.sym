@@ -29,6 +29,7 @@ smb_session_new
 smb_session_server_name
 smb_session_set_creds
 smb_session_supports
+smb_session_max_raw_buffer_size
 smb_share_get_list
 smb_share_list_at
 smb_share_list_count

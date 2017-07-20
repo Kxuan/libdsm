@@ -109,6 +109,8 @@ struct smb_srv_info
     uint32_t            caps;           // Server caps replyed during negotiate
     uint64_t            challenge;      // For challenge response security
     uint64_t            ts;             // It seems Win7 requires it :-/
+    uint32_t            max_bufsize;    /* Max buffer size requested by server. */
+    uint32_t            max_rawbuffer;  /* Max raw buffer size requested by serv. */
 };
 
 /**

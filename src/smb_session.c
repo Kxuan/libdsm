@@ -199,6 +199,8 @@ static int        smb_negotiate(smb_session *s)
     s->srv.caps           = nego->caps;
     s->srv.ts             = nego->ts;
     s->srv.session_key    = nego->session_key;
+	s->srv.max_bufsize    = nego->max_bufsize;
+	s->srv.max_rawbuffer  = nego->max_rawbuffer;
 
     // Copy SPNEGO supported mechanisms  token for later usage (login_gss())
     if (smb_session_supports(s, SMB_SESSION_XSEC))
@@ -392,4 +394,10 @@ bool smb_session_check_nt_status(smb_session *s, smb_message *msg)
         return false;
     }
     return true;
+}
+
+uint32_t smb_session_max_raw_buffer_size(smb_session *s)
+{
+	assert(s != NULL);
+	return s->srv.max_rawbuffer;
 }
