@@ -224,20 +224,32 @@ int               netbios_session_packet_send(netbios_session *s)
 {
     ssize_t         to_send;
     ssize_t         sent;
+    uint8_t         *ptr;
+    size_t          remaining;
 
     assert(s && s->packet && s->socket >= 0 && s->state > 0);
 
     s->packet->length = htons(s->packet_cursor);
     to_send           = sizeof(netbios_session_packet) + s->packet_cursor;
-    sent              = send(s->socket, (void *)s->packet, to_send, 0);
+    ptr = (uint8_t *) s->packet;
+    remaining = (size_t) to_send;
 
-    if (sent != to_send)
+    while (remaining) {
+        sent = send(s->socket, ptr, remaining, 0);
+        if (sent > 0) {
+            remaining -= sent;
+            ptr += sent;
+        } else {
+            break;
+        }
+    }
+    if (remaining != 0)
     {
-        BDSM_perror("netbios_session_packet_send: Unable to send (full?) packet");
+        BDSM_perror("netbios_session_packet_send: Unable to send packet");
         return 0;
     }
 
-    return sent;
+    return to_send;
 }
 
 static ssize_t    netbios_session_get_next_packet(netbios_session *s)
