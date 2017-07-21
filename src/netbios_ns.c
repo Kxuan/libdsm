@@ -457,8 +457,13 @@ static int netbios_ns_handle_query(netbios_ns *ns, size_t size,
             const char *current_name = names + name_idx * 18;
             uint16_t current_flags = (current_name[16] << 8) | current_name[17];
             if (current_flags & NETBIOS_NAME_FLAG_GROUP) {
-                group = current_name;
-                break;
+                if (!group) {
+                    group = current_name;
+                }
+                if (current_name[15] == 0) {
+                    group = current_name;
+                    break;
+                }
             }
         }
         // then search for file servers
