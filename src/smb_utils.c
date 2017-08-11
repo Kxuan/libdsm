@@ -54,6 +54,7 @@ static const char *current_encoding()
 #elif !HAVE_LANGINFO_H
     return "UTF-8";
 #else
+    return "UTF-8";
     static int locale_set = 0;
 
     if (!locale_set)
