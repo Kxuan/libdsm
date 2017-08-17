@@ -46,6 +46,7 @@
 #include <sys/socket.h>
 #endif
 #include <errno.h>
+#include <netinet/tcp.h>
 
 #include "smb_defs.h"
 #include "bdsm_debug.h"
@@ -54,8 +55,18 @@
 
 static int open_socket_and_connect(netbios_session *s)
 {
+    int v;
     if ((s->socket = socket(AF_INET, SOCK_STREAM, 0)) < 0)
         goto error;
+    v = 1;
+    setsockopt(s->socket, SOL_SOCKET, SO_KEEPALIVE, &v, sizeof(v));
+    v = 10 * 60;
+    setsockopt(s->socket, SOL_TCP, TCP_KEEPIDLE, &v, sizeof(v));
+    v = 9;
+    setsockopt(s->socket, SOL_TCP, TCP_KEEPCNT, &v, sizeof(v));
+    v = 61;
+    setsockopt(s->socket, SOL_TCP, TCP_KEEPINTVL, &v, sizeof(v));
+
     if (connect(s->socket, (struct sockaddr *)&s->remote_addr, sizeof(s->remote_addr)) <0)
         goto error;
 
