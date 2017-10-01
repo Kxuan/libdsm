@@ -45,6 +45,7 @@
 #ifdef HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
 #endif
+#include <sys/fcntl.h>
 #include <errno.h>
 #include <netinet/tcp.h>
 
@@ -55,7 +56,10 @@
 
 static int open_socket_and_connect(netbios_session *s)
 {
-    int v;
+    const int timeout = 2;
+    int v, rc, fl;
+    socklen_t len;
+
     if ((s->socket = socket(AF_INET, SOCK_STREAM, 0)) < 0)
         goto error;
     v = 1;
@@ -66,14 +70,56 @@ static int open_socket_and_connect(netbios_session *s)
     setsockopt(s->socket, SOL_TCP, TCP_KEEPCNT, &v, sizeof(v));
     v = 61;
     setsockopt(s->socket, SOL_TCP, TCP_KEEPINTVL, &v, sizeof(v));
-
-    if (connect(s->socket, (struct sockaddr *)&s->remote_addr, sizeof(s->remote_addr)) <0)
+    
+    fl = fcntl(s->socket, F_GETFL);
+    if (fl == -1) {
+        BDSM_perror("netbios_session_new, F_GETFL: ");
         goto error;
+    }
 
+    if (!(fl & O_NONBLOCK)) {
+        rc = fcntl(s->socket, F_SETFL, fl | O_NONBLOCK);
+        if (rc == -1) {
+            BDSM_perror("netbios_session_new, F_SETFL: ");
+            goto error;
+        }
+    }
+
+    rc = connect(s->socket, (struct sockaddr *)&s->remote_addr, sizeof(s->remote_addr));
+    if (rc == -1) {
+        if (errno != EINPROGRESS) {
+            BDSM_perror("netbios_session_new, connect: ");
+            goto error;
+        }
+
+        fd_set fdset;
+        struct timeval tv;
+        FD_ZERO(&fdset);
+        FD_SET(s->socket, &fdset);
+        tv.tv_sec = timeout;
+        tv.tv_usec = 0;
+        
+        rc = select((s->socket) + 1, NULL, &fdset, NULL, &tv);
+        if (rc <= 0 || !FD_ISSET(s->socket, &fdset)) {
+            BDSM_perror("netbios_session_new, select: ");
+            goto error;
+        }
+        len = sizeof(v);
+        rc = getsockopt(s->socket, SOL_SOCKET, SO_ERROR, &v, &len);
+
+        if (rc < 0 || v != 0) {
+            BDSM_perror("netbios_session_new, getsockopt: ");
+            goto error; 
+        }
+    }
+    
+    rc = fcntl(s->socket, F_SETFL, fl);
     return DSM_SUCCESS;
 
 error:
     BDSM_perror("netbios_session_new, open_socket: ");
+    close(s->socket);
+    s->socket = -1;
     return DSM_ERROR_NETWORK;
 }
 
