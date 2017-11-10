@@ -70,6 +70,12 @@ static int open_socket_and_connect(netbios_session *s)
     setsockopt(s->socket, SOL_TCP, TCP_KEEPCNT, &v, sizeof(v));
     v = 61;
     setsockopt(s->socket, SOL_TCP, TCP_KEEPINTVL, &v, sizeof(v));
+    struct timeval time_send = {
+        .tv_sec = 10,
+        .tv_usec = 0
+    };
+    setsockopt (s->socket, SOL_SOCKET, SO_SNDTIMEO, (char *)&time_send,
+                sizeof(time_send));
     
     fl = fcntl(s->socket, F_GETFL);
     if (fl == -1) {
